@@ -54,14 +54,16 @@ def term_test(board, depth):
 # same as Result in pseudocode
 # tested and places above preexisting piece in correct column
 def Result(board, action, player_num):
+    temp = np.copy(board)
     if 0 in board[:,action]:
         for row in range(0, 6):
             index = 5 - row
-            print('Result: checking row', index)
             if board[index, action] == 0:
-                print('Result: inserting at row', index)
-                board[index, action] = player_num
-                return board
+                print 'Result: inserting at row', index, 'column', action
+                #board[index, action] = player_num
+                temp[index, action] = player_num
+                #return board
+                return temp
     else:
         err = 'Invalid move by player {}. Column {}'.format(player_num, action)
         raise Exception(err)
@@ -96,61 +98,62 @@ class AIPlayer:
 
 
     def get_alpha_beta_move(self, board):
-        """
-        Given the current state of the board, return the next move based on
-        the alpha-beta pruning algorithm
-
-        This will play against either itself or a human player
-
-        INPUTS:
-        board - a numpy array containing the state of the board using the
-                following encoding:
-                - the board maintains its same two dimensions
-                    - row 0 is the top of the board and so is
-                      the last row filled
-                - spaces that are unoccupied are marked as 0
-                - spaces that are occupied by player 1 have a 1 in them
-                - spaces that are occupied by player 2 have a 2 in them
-
-        RETURNS:
-        The 0 based index of the column that represents the next move
-        """
         print('get_alpha_beta_move: printing the board')
         print(board)
-        #valid_cols = Actions(board)
-        test = random.randint(0, 6)
 
-        # testing evaluation function
-        print('calling evaluation function')
-        self.evaluation_function(board)
-        return test
+        negative= -10000
+        positive= 10000
+        DEPTH = 3
+        best_value = 0
+        best_action = 3
+        for action in Actions(board):
+            value = self.min_value(Result(board, action, self.player_number), negative, positive, DEPTH)
+            if value > best_value:
+                best_value = value
+                best_action = action
+        print 'The best action is ', best_action,' for Player', self.player_number,' with estimated future value', best_value
+        return best_action
         
 
+    def max_value(self, board, alpha, beta, depth):
+        print 'max_value(alpha =', alpha, 'beta =', beta, 'depth =', depth, ')'
+        print board
+        if term_test(board, depth):
+            utility = self.evaluation_function(board)
+            print '\n***max: Terminated with utility', utility, 'at board state:***'
+            print board
+            return utility
+        value = -100000
+        for action in Actions(board):
+            value = max(value, self.min_value(Result(board, action, self.player_number), alpha, beta, depth - 1))
+            if value >= beta:
+                return value
+            alpha = max(alpha, value)
+        return value
+
+
+    def min_value(self, board, alpha, beta, depth):
+        print 'min_value(alpha =', alpha, 'beta =', beta, 'depth =', depth, ')'
+        print board
+        if term_test(board, depth):
+            utility = self.evaluation_function(board)
+            print '\n***min: Terminated with utility', utility, 'at board state:***'
+            print board
+            return utility
+        value = 100000
+        for action in Actions(board):
+            value = min(value, self.max_value(Result(board, action, other_player(self.player_number)), alpha, beta, depth - 1))
+            if value <= alpha:
+                return value
+            beta = max(beta, value)
+        return value
+
+
     def get_expectimax_move(self, board):
-        """
-        Given the current state of the board, return the next move based on
-        the expectimax algorithm.
-
-        This will play against the random player, who chooses any valid move
-        with equal probability
-
-        INPUTS:
-        board - a numpy array containing the state of the board using the
-                following encoding:
-                - the board maintains its same two dimensions
-                    - row 0 is the top of the board and so is
-                      the last row filled
-                - spaces that are unoccupied are marked as 0
-                - spaces that are occupied by player 1 have a 1 in them
-                - spaces that are occupied by player 2 have a 2 in them
-
-        RETURNS:
-        The 0 based index of the column that represents the next move
-        """
         raise NotImplementedError('Whoops I don\'t know what to do')
-	#for i, j in range(0:6, 1:6)
 
 
+    # two connect = 5, three = 10, four = 1000
     def my_pieces_eval(self, board):
         two = '{0}{0}'.format(self.player_number)
         three = '{0}{0}{0}'.format(self.player_number)
@@ -161,7 +164,7 @@ class AIPlayer:
         def check_horizontal(b):
             two_value= 5
             three_value= 10
-            four_value= 100
+            four_value= 1000
             points = 0
             for row in b:
                 if two in to_str(row):
@@ -176,9 +179,9 @@ class AIPlayer:
             return check_horizontal(b.T)
         
         def check_diagonal(b):
-            two_value= 5
-            three_value= 10
-            four_value= 100
+            two_value= 4
+            three_value= 8
+            four_value= 1000
             points = 0
             for op in [None, np.fliplr]:
                 op_board = op(b) if op else b
@@ -208,24 +211,7 @@ class AIPlayer:
         return total_point
 
     def evaluation_function(self, board):
-        """
-        Given the current stat of the board, return the scalar value that 
-        represents the evaluation function for the current player
-       
-        INPUTS:
-        board - a numpy array containing the state of the board using the
-                following encoding:
-                - the board maintains its same two dimensions
-                    - row 0 is the top of the board and so is
-                      the last row filled
-                - spaces that are unoccupied are marked as 0
-                - spaces that are occupied by player 1 have a 1 in them
-                - spaces that are occupied by player 2 have a 2 in them
-
-        RETURNS:
-        The utility value for the current board
-        """
-        print('Player', self.player_number, ' point =', self.my_pieces_eval(board))
+        print 'Player', self.player_number, 'has', self.my_pieces_eval(board), 'points'
         weight = 1
         utility = weight * self.my_pieces_eval(board)
         return utility
