@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from operator import add
 
 # helper functions
 
@@ -87,26 +88,12 @@ def Actions(board):
     return valid_cols
 
 
-def count_connected(board, player_num):
-    # counts 'count' number of connected pieces 
-    print('player_num =', player_num)
-    two_count = '{0}{0}'.format(player_num)
-    three_count = '{0}{0}{0}'.format(player_num)
-    to_str = lambda a: ''.join(a.astype(str))
-    for row in board:
-        if two_count in to_str(row):
-            print(row, ":")
-            print("Found 2 in a row!")
-        if three_count in to_str(row):
-            print(row, ":")
-            print("Found 3 in a row!")
-	
-
 class AIPlayer:
     def __init__(self, player_number):
         self.player_number = player_number
         self.type = 'ai'
         self.player_string = 'Player {}:ai'.format(player_number)
+
 
     def get_alpha_beta_move(self, board):
         """
@@ -130,42 +117,12 @@ class AIPlayer:
         """
         print('get_alpha_beta_move: printing the board')
         print(board)
-        count_connected(board, self.player_number)
-        valid_cols = Actions(board)
-        print('Actions(board) =', Actions(board))
+        #valid_cols = Actions(board)
         test = random.randint(0, 6)
 
-        # testing term_test
-        print('Testing random chose', test)
-        print('Term_test(board, 0) =', term_test(board, 0))
-        print('Term_test(board, 1) =', term_test(board, 1))
-        testboard = np.zeros([6,7]).astype(np.uint8)
-        testboard[5] = [1, 1, 1, 1, 0, 0, 0]
-        print('Test board = ', testboard)
-        print('Term_test(testboard, 0) =', term_test(testboard, 1))
-        testboard = np.zeros([6,7]).astype(np.uint8)
-        testboard[5][0] = 1
-        testboard[4][0] = 1
-        testboard[3][0] = 1
-        testboard[2][0] = 1
-        print('Test board = ', testboard)
-        print('Term_test(testboard, 0) =', term_test(testboard, 1))
-        testboard = np.zeros([6,7]).astype(np.uint8)
-        testboard[5][0] = 1
-        testboard[4][1] = 1
-        testboard[3][2] = 1
-        testboard[2][3] = 1
-        print('Test board = ', testboard)
-        print('Term_test(testboard, 0) =', term_test(testboard, 1))
-
-        # testing Result
-        testboard = np.zeros([6,7]).astype(np.uint8)
-        testboard[5] = [1, 1, 1, 1, 0, 0, 0]
-        print('Test board = ', testboard)
-        testboard = Result(testboard, 1, self.player_number)
-        print('Test board after Result(testboard, 1, self.player_number) = ', testboard)
-        
-
+        # testing evaluation function
+        print('calling evaluation function')
+        self.evaluation_function(board)
         return test
         
 
@@ -190,11 +147,65 @@ class AIPlayer:
         RETURNS:
         The 0 based index of the column that represents the next move
         """
-        # raise NotImplementedError('Whoops I don\'t know what to do')
+        raise NotImplementedError('Whoops I don\'t know what to do')
 	#for i, j in range(0:6, 1:6)
 
 
+    def my_pieces_eval(self, board):
+        two = '{0}{0}'.format(self.player_number)
+        three = '{0}{0}{0}'.format(self.player_number)
+        four = '{0}{0}{0}{0}'.format(self.player_number)
+        to_str = lambda a: ''.join(a.astype(str))
 
+
+        def check_horizontal(b):
+            two_value= 5
+            three_value= 10
+            four_value= 100
+            points = 0
+            for row in b:
+                if two in to_str(row):
+                    points += two_value
+                if three in to_str(row):
+                    points += three_value
+                if four in to_str(row):
+                    points += four_value
+            return points
+        
+        def check_verticle(b):
+            return check_horizontal(b.T)
+        
+        def check_diagonal(b):
+            two_value= 5
+            three_value= 10
+            four_value= 100
+            points = 0
+            for op in [None, np.fliplr]:
+                op_board = op(b) if op else b
+        
+                root_diag = np.diagonal(op_board, offset=0).astype(np.int)
+                if two in to_str(root_diag):
+                    points += two_value
+                if three in to_str(root_diag):
+                    points += three_value
+                if four in to_str(root_diag):
+                    points += four_value
+        
+        
+                for i in range(1, b.shape[1]-3):
+                    for offset in [i, -i]:
+                        diag = np.diagonal(op_board, offset=offset)
+                        diag = to_str(diag.astype(np.int))
+                        if two in to_str(root_diag):
+                            points += two_value
+                        if three in to_str(root_diag):
+                            points += three_value
+                        if four in to_str(root_diag):
+                            points += four_value
+            return points
+        
+        total_point = check_horizontal(board) + check_verticle(board) + check_diagonal(board)
+        return total_point
 
     def evaluation_function(self, board):
         """
@@ -214,10 +225,10 @@ class AIPlayer:
         RETURNS:
         The utility value for the current board
         """
-       
-       
-        return 0
-
+        print('Player', self.player_number, ' point =', self.my_pieces_eval(board))
+        weight = 1
+        utility = weight * self.my_pieces_eval(board)
+        return utility
 
 class RandomPlayer:
     def __init__(self, player_number):
