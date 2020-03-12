@@ -103,7 +103,7 @@ class AIPlayer:
 
         negative= -10000
         positive= 10000
-        DEPTH = 3
+        DEPTH = 4
         best_value = 0
         best_action = 3
         for action in Actions(board):
@@ -148,9 +148,50 @@ class AIPlayer:
             beta = max(beta, value)
         return value
 
+    def max_value_2(self, board, depth):
+        print 'max_value_2(depth =', depth, ')'
+        print board
+        if term_test(board, depth):
+            utility = self.evaluation_function(board)
+            print '\n***max: Terminated with utility', utility, 'at board state:***'
+            print board
+            return utility
+        value = -100000
+        for action in Actions(board):
+            value = max(value, self.exp_value(Result(board, action, self.player_number), depth - 1))
+        return value
+
+    def exp_value(self, board, depth):
+        print 'exp_value(depth =', depth, ')'
+        print board
+        if term_test(board, depth):
+            utility = self.evaluation_function(board)
+            print '\n***min: Terminated with utility', utility, 'at board state:***'
+            print board
+            return utility
+        value = 0
+        counter = 0
+        for action in Actions(board):
+            value += self.max_value_2(Result(board, action, other_player(self.player_number)), depth - 1)
+            counter += 1
+        exp_value = value/counter
+        print('exp_value =', exp_value)
+        return exp_value
 
     def get_expectimax_move(self, board):
-        raise NotImplementedError('Whoops I don\'t know what to do')
+        print('get_expectimax_move: printing the board')
+        print(board)
+
+        DEPTH = 3
+        best_value = 0
+        best_action = 3
+        for action in Actions(board):
+            value = self.exp_value(Result(board, action, self.player_number), DEPTH)
+            if value > best_value:
+                best_value = value
+                best_action = action
+        print 'The best action is ', best_action,' for Player', self.player_number,' with expected future value', best_value
+        return best_action
 
 
     # two connect = 5, three = 10, four = 1000
@@ -164,7 +205,7 @@ class AIPlayer:
         def check_horizontal(b):
             two_value= 5
             three_value= 10
-            four_value= 1000
+            four_value= 10000
             points = 0
             for row in b:
                 if two in to_str(row):
@@ -181,7 +222,7 @@ class AIPlayer:
         def check_diagonal(b):
             two_value= 4
             three_value= 8
-            four_value= 1000
+            four_value= 10000
             points = 0
             for op in [None, np.fliplr]:
                 op_board = op(b) if op else b
