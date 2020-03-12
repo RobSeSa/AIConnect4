@@ -1,8 +1,14 @@
 # system libs
 import argparse
 import multiprocessing as mp
-import tkinter as tk
 
+import sys
+if sys.version_info[0] == 3:
+# for Python3
+    import tkinter as tk ## notice lowercase 't' in tkinter here
+else:
+# for Python2
+    import Tkinter as tk ## notice capitalized T in Tkinter
 # 3rd party libs
 import numpy as np
 
